@@ -1,23 +1,27 @@
 import re
 import string
+
 import networkx as nx
 import numpy as np
+from gensim.models import KeyedVectors
 from nltk import word_tokenize
-from evaluation import Rouge
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sumy.utils import get_stop_words
+from summarizers import CoreRank
+from evaluation import Rouge
 
 
 class SentenceFeature():
 
     def __init__(self, parser) -> None:
-        self.paragrahs = parser.paragrahs
+        self.paragraphs = parser.paragraphs
         self.sents = parser.sents
         self.sents_i = list(range(len(self.sents)))  # list contains index of each sentence
         self.refs = parser.highlights
         self.processed_words = parser.processed_words
         self.unprocessed_words = parser.unprocessed_words
+        self.keywords = CoreRank(parser).cal_keywords_score()
 
     def label_sents(self):
         """
@@ -129,7 +133,7 @@ class SentenceFeature():
             1, input sentence is the first sentence of a paragraph
             0, input sentence is not the first sentence of a paragraph.
         """
-        for paragraph in self.paragrahs:
+        for paragraph in self.paragraphs:
             if self.sents[sent_i] == paragraph[0]:
                 return 1
             else:
@@ -155,7 +159,7 @@ class SentenceFeature():
         # find the paragraph containing the input sentence, concatenate the paragraph as a singe string
         in_paragraph = None
         sent = self.sents[sent_i]
-        for paragraph in self.paragrahs:
+        for paragraph in self.paragraphs:
             if sent in paragraph:
                 in_paragraph = " ".join(paragraph)
                 break
@@ -301,7 +305,47 @@ class SentenceFeature():
 
         return avg_DF
 
-    def get_content_features(self, sents_i, vectorizer, X):
+    # def _get_avg_word_emb_vec(self, sent_i, word_vectors):
+    #     unprocessed_words = self.unprocessed_words[sent_i]
+    #     total_emb = np.zeros((1, word_vectors.vector_size))
+    #     count = 0
+    #
+    #     for w in unprocessed_words:
+    #         try:
+    #             word_vector = word_vectors[w]
+    #         except KeyError:
+    #             continue
+    #         total_emb += word_vector
+    #         count += 1
+    #
+    #     avg_emb_vec = total_emb / count
+    #
+    #     return avg_emb_vec
+    #
+    # def _get_emb(self, sent_i, word_vectors):
+    #     avg_emb_vec = self._get_avg_word_emb_vec(sent_i, word_vectors)
+    #     emb = np.mean(avg_emb_vec)
+    #
+    #     return emb
+
+    def _get_avg_core_rank_score(self, sent_i):
+        """
+        :param sent_i: int
+            Index of a sentence
+        :return: float
+        """
+        processed_words = self.processed_words[sent_i]
+        total_score = 0
+        count = len(processed_words)
+
+        for w in processed_words:
+            total_score += self.keywords[w]
+
+        avg_score = total_score / count
+
+        return avg_score
+
+    def get_content_features(self, sents_i, vectorizer, X, word_vectors):
         # solely get content features for unlabeled data
         if sents_i is None:
             sents_i = self.sents_i
@@ -310,7 +354,9 @@ class SentenceFeature():
             stop = self._get_stopwords_ratio(sent_i)
             TF = self._get_avg_term_freq(sent_i, vectorizer, X)
             DF = self._get_avg_doc_freq(sent_i, vectorizer, X)
-            return [stop, TF, DF]
+            # Emb = self._get_emb(sent_i, word_vectors)
+            core_rank_score = self._get_avg_core_rank_score(sent_i)
+            return [stop, TF, DF, core_rank_score]
 
         content_features = []
         if type(sents_i) is list:
@@ -366,7 +412,7 @@ class SentenceFeature():
         # find the paragraph containing the input sentence, concatenate the paragraph as a singe string
         first_sent_para = None
         sent = self.sents[sent_i]
-        for paragraph in self.paragrahs:
+        for paragraph in self.paragraphs:
             if sent in paragraph:
                 first_sent_para = paragraph[0]
                 break
@@ -375,7 +421,7 @@ class SentenceFeature():
 
         return relevance
 
-    def _page_rank_rel(self, thres=0.1):
+    def page_rank_rel(self, thres=0.1):
         """
         PageRank value of the sentence based on the sentence map
 
@@ -399,6 +445,30 @@ class SentenceFeature():
 
         return pr
 
+    # def _get_global_avg_word_emb(self, word_vectors):
+    #     total_Emb = np.zeros((1, word_vectors.vector_size))
+    #     count = 0
+    #     for words in self.unprocessed_words:
+    #         for w in words:
+    #             try:
+    #                 word_vector = word_vectors[w]
+    #             except KeyError:
+    #                 continue
+    #             total_Emb += word_vector
+    #             count += 1
+    #
+    #     global_avg_Emb = total_Emb / count
+    #
+    #     return global_avg_Emb
+    #
+    # def _get_emb_cos(self, sent_i, word_vectors, global_avg_word_emb):
+    #     avg_emb_vec = self._get_avg_word_emb_vec(sent_i, word_vectors)
+    #     print(avg_emb_vec.shape)
+    #     print(global_avg_word_emb.shape)
+    #     similarity = cosine_similarity(avg_emb_vec, global_avg_word_emb)[0][0]
+    #
+    #     return similarity
+
     def get_relevance_features(self, sents_i):
         """
         Relevance features are incorporated to exploit inter-sentence relationships.
@@ -418,12 +488,14 @@ class SentenceFeature():
         try:
             self.pr
         except AttributeError:
-            self.pr = self._page_rank_rel()
+            self.pr = self.page_rank_rel()
 
+        # global_avg_word_emb = self._get_global_avg_word_emb(word_vectors)
         def get_features(sent_i):
             first_rel_doc = self._get_first_rel_doc(sent_i)
             first_rel_para = self._get_first_rel_para(sent_i)
             page_rank_rel = self.pr.get(sent_i, 0)
+            # Emb_cos = self._get_emb_cos(sent_i, word_vectors, global_avg_word_emb)
             return [first_rel_doc, first_rel_para, page_rank_rel]
 
         relevance_features = []
@@ -438,19 +510,18 @@ class SentenceFeature():
 
         return relevance_features
 
-    def get_all_features(self, vectorizer, X, sents_i=None):
+    def get_all_features(self, vectorizer, X, word_vectors=None, sents_i=None):
         # get all feature for unlabeled data
         if sents_i is None:
             sents_i = self.sents_i
 
         all_features = []
         for sent_i in sents_i:
-            # surface_features = self.get_surface_features(sent_i)
-            content_features = self.get_content_features(sent_i, vectorizer, X)
-            # relevance_features = self.get_relevance_features(sent_i)
-            pass
-            # all_feature = surface_features + content_features + event_features + relevance_features
-            # all_features.append(all_feature)
+            surface_features = self.get_surface_features(sent_i)
+            content_features = self.get_content_features(sent_i, vectorizer, X, word_vectors)
+            relevance_features = self.get_relevance_features(sent_i)
+            all_feature = surface_features + content_features + relevance_features
+            all_features.append(all_feature)
 
         return all_features
 
@@ -475,6 +546,9 @@ class SentenceFeature():
 if __name__ == "__main__":
     from parsers import StoryParser
 
+    # model_path = "C:/KangLong/Data/GoogleNews-vectors-negative300.bin.gz"  # change to your path
+    # word_vectors = KeyedVectors.load_word2vec_format(model_path, binary=True)
+
     data_dir = 'C:/KangLong/Data/cnn/stories/data/train/'
     parser = StoryParser.from_file(data_dir + "c7af94074d86535e5c02e1199946ac722585b0ac.story")
     vectorizer, X = SentenceFeature.get_global_term_freq(parser)
@@ -486,6 +560,6 @@ if __name__ == "__main__":
     #     for j in sent_feature.sents_i[i+1:]:
     #         sim = sent_feature._cal_cosine_similarity([sent_feature.sents[i], sent_feature.sents[j]])
     #         print(sim)
-    # pr = sent_feature._page_rank_rel()
+    # pr = sent_feature.page_rank_rel()
     # print(len(pr))
     # print(len(sent_feature.sents_i))

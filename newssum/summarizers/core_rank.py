@@ -31,7 +31,7 @@ class CoreRank():
         self.sents = parser.sents
 
         self.graph = self._build_graph(window_size, overspan_sents)
-        self.scores = self._cal_keywords_score(weight)
+        self.scores = self.cal_keywords_score(weight)
 
     def _build_graph(self, window_size, overspan_sents):
         c_matrix = CoOccurrenceMatrix(self.words, window_size, overspan_sents)
@@ -39,7 +39,7 @@ class CoreRank():
 
         return graph.G
 
-    def _cal_keywords_score(self, weight):
+    def cal_keywords_score(self, weight='weight'):
         """
         Calculate score for each keyword.
 

@@ -8,7 +8,7 @@ from nltk import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sumy.utils import get_stop_words
-from summarizers import CoreRank
+from newssum.summarizers import CoreRank
 from evaluation import Rouge
 
 
@@ -27,7 +27,8 @@ class SentenceFeature():
         """
         Label each sentence set by greedily selecting the sentence with the maximum relative importance.
 
-        :return:
+        :return: list
+            List stores label of each sentence
         """
         concat_ref = " ".join(self.refs)  # concatenate reference summaries as a whole string
 
@@ -90,10 +91,14 @@ class SentenceFeature():
 
         # for i, v in S_i:
         #     print("{}: {}: {}".format(i, v, sents[i]))
+        y = [0] * len(self.sents_i)
+        for i, _ in S_i:
+            y[i] = 1
 
-        pos_sents_i = [i for i, _ in S_i]
-        neg_sents_i = [i for i in sents_i]
-        return (pos_sents_i, neg_sents_i)
+        return y
+        # pos_sents_i = [i for i, _ in S_i]
+        # neg_sents_i = [i for i in sents_i]
+        # return (pos_sents_i, neg_sents_i)
 
     # def label_sents(self, sents, refs):
     #     """
@@ -114,6 +119,9 @@ class SentenceFeature():
     #     print(sorted_list)
     #     for k,v in sorted_list:
     #         print("{}: {}\n".format(sents[k], v))
+
+    def _get_position(self, sent_i):
+        return sent_i / self.sents_i[-1]
 
     def _get_doc_first(self, sent_i):
         """
@@ -224,7 +232,7 @@ class SentenceFeature():
             sents_i = self.sents_i
 
         def get_features(sent_i):
-            position = sent_i  # get 1/sentence no
+            position = self._get_position(sent_i)  # get 1/sentence no
             doc_first = self._get_doc_first(sent_i)
             para_first = self._get_para_first(sent_i)
             length = self._get_length(sent_i)
@@ -237,6 +245,7 @@ class SentenceFeature():
             for sent_i in sents_i:
                 surface_feature = get_features(sent_i)
                 surface_features.append(surface_feature)
+            # self.features_name = ["position", "doc_first", "para_first", "length", "quote"]
         else:
             # get surface features for single sample for labeled data
             surface_features = get_features(sents_i)
@@ -276,7 +285,10 @@ class SentenceFeature():
                 total_TF += np.sum(X_array[:, w_i_in_array])
                 count += 1
 
-        avg_TF = total_TF / count
+        if count != 0:
+            avg_TF = total_TF / count
+        else:
+            avg_TF = 0
 
         return avg_TF
 
@@ -301,7 +313,10 @@ class SentenceFeature():
                 total_DF += np.count_nonzero(X_array[:, w_i_in_array])
                 count += 1
 
-        avg_DF = total_DF / count
+        if count != 0:
+            avg_DF = total_DF / count
+        else:
+            avg_DF = 0
 
         return avg_DF
 
@@ -341,7 +356,10 @@ class SentenceFeature():
         for w in processed_words:
             total_score += self.keywords[w]
 
-        avg_score = total_score / count
+        if count != 0:
+            avg_score = total_score / count
+        else:
+            avg_score = 0
 
         return avg_score
 
@@ -364,6 +382,7 @@ class SentenceFeature():
             for sent_i in sents_i:
                 content_feature = get_features(sent_i)
                 content_features.append(content_feature)
+            # self.features_name = ["stop", "TF", "DF", "core_rank_score"]
         else:
             # get surface features for single sample for labeled data
             content_features = get_features(sents_i)
@@ -437,7 +456,7 @@ class SentenceFeature():
         # Every two relevant sentences are connected with a unidirectional link.
         for i in self.sents_i[:-2]:
             for j in self.sents_i[i + 1:]:
-                sim = sent_feature._cal_cosine_similarity([sent_feature.sents[i], sent_feature.sents[j]])
+                sim = self._cal_cosine_similarity([self.sents[i], self.sents[j]])
                 if sim > thres:
                     G.add_edge(i, j)
 
@@ -504,6 +523,7 @@ class SentenceFeature():
             for sent_i in sents_i:
                 relevance_feature = get_features(sent_i)
                 relevance_features.append(relevance_feature)
+            # self.features_name = ["first_rel_doc", "first_rel_para", "page_rank_rel"]
         else:
             # get surface features for single sample for labeled data
             relevance_features = get_features(sents_i)
@@ -523,7 +543,20 @@ class SentenceFeature():
             all_feature = surface_features + content_features + relevance_features
             all_features.append(all_feature)
 
+        # self.features_name = ["position", "doc_first", "para_first", "length", "quote", "stop", "TF", "DF",
+        #                       "core_rank_score", "first_rel_doc", "first_rel_para", "page_rank_rel"]
+        # self.doc_level_normalize(all_features, ["length", "quote", "core_rank_score", "page_rank_rel"])
         return all_features
+
+    # def doc_level_normalize(self, all_features, selected_features):
+    #     all_features = np.asarray(all_features)
+    #     for f in selected_features:
+    #         f_i = self.features_name.index(f)
+    #         f_c = all_features[:, f_i].reshape(-1, 1)
+    #         f_normalized = normalize(f_c)
+    #         all_features[:, f_i] = f_normalized
+    #
+    #     pass
 
     @staticmethod
     def get_global_term_freq(parsers):
@@ -535,7 +568,7 @@ class SentenceFeature():
         """
         vectorizer = CountVectorizer(stop_words=get_stop_words("english"))
         if type(parsers) is list:
-            corpus = [parsers.body for parser in parsers]
+            corpus = [parser.body for parser in parsers]
         else:
             corpus = [parsers.body]
         X = vectorizer.fit_transform(corpus)

@@ -1,5 +1,5 @@
 from rouge import Rouge as R
-
+from prettytable import PrettyTable
 
 class Rouge:
     def __init__(self, evaluated_sentences, reference_sentences):
@@ -30,6 +30,11 @@ class Rouge:
 
     @staticmethod
     def cal_avg_rouge(rouges):
+        """
+        :param rouges: list
+            List of dict.
+        :return: dict
+        """
         avg_rouge = rouges[0]
         n = len(rouges)
         if n > 1:
@@ -44,3 +49,16 @@ class Rouge:
                 v["r"] /= n
 
         return avg_rouge
+
+    @staticmethod
+    def print(labels, rouges):
+        if type(labels) is not list:
+            labels = [labels]
+        if type(rouges) is not list:
+            rouges = [rouges]
+        for k in rouges[0]:
+            print(k)
+            t = PrettyTable(['Summarizer', 'F1-score', 'Precision', 'Recall'])
+            for i, v in enumerate(labels):
+                t.add_row([v] + list(rouges[i][k].values()))
+            print(t)

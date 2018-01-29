@@ -27,3 +27,20 @@ class Rouge:
 
     def get_rouge_l(self):
         return self._score["rouge-l"]
+
+    @staticmethod
+    def cal_avg_rouge(rouges):
+        avg_rouge = rouges[0]
+        n = len(rouges)
+        if n > 1:
+            for rouge in rouges[1:]:
+                for k in rouge:
+                    avg_rouge[k]["f"] += rouge[k]["f"]
+                    avg_rouge[k]["p"] += rouge[k]["p"]
+                    avg_rouge[k]["r"] += rouge[k]["r"]
+            for v in avg_rouge.values():
+                v["f"] /= n
+                v["p"] /= n
+                v["r"] /= n
+
+        return avg_rouge

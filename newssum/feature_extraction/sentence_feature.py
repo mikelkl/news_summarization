@@ -181,7 +181,10 @@ class SentenceFeature():
         if quotes_i:
             quotes_i = iter(quotes_i)  # facilitate iterating two elements at same iteration
             for quote_i in quotes_i:  # # get position of 1st quote of a pair of quotes
-                next_quote_i = next(quotes_i)  # get position of 2nd quote of a pair of quotes
+                try:
+                    next_quote_i = next(quotes_i)  # get position of 2nd quote of a pair of quotes
+                except StopIteration:
+                    break
 
                 # 6 kind of partition using quotes for a sentence
                 if quote_i <= sent_start_i_in_paragraph:

@@ -263,8 +263,11 @@ class SentenceFeature():
             Stop words ratio of s
         """
         words_num = len(self.unprocessed_words[sent_i])
-        non_stopwords_num = len(self.processed_words[sent_i])
-        stopwords_ratio = (words_num - non_stopwords_num) / words_num
+        if words_num != 0:
+            non_stopwords_num = len(self.processed_words[sent_i])
+            stopwords_ratio = (words_num - non_stopwords_num) / words_num
+        else:
+            stopwords_ratio = 1
         return stopwords_ratio
 
     def _get_avg_term_freq(self, sent_i, vectorizer, X):

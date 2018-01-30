@@ -274,7 +274,7 @@ class SentenceFeature():
         :return: float
             Average Term Frequency
         """
-        X_array = X.toarray()
+        GTF = np.ravel(X.sum(axis=0))  # sum each columns to get total counts for each word
         unprocessed_words = self.unprocessed_words[sent_i]
         total_TF = 0
         count = 0
@@ -282,7 +282,7 @@ class SentenceFeature():
         for w in unprocessed_words:
             w_i_in_array = vectorizer.vocabulary_.get(w)  # map from word to column index
             if w_i_in_array:
-                total_TF += np.sum(X_array[:, w_i_in_array])
+                total_TF += GTF[w_i_in_array]
                 count += 1
 
         if count != 0:
@@ -302,7 +302,6 @@ class SentenceFeature():
         :return: float
             Average Document Frequency
         """
-        X_array = X.toarray()
         unprocessed_words = self.unprocessed_words[sent_i]
         total_DF = 0
         count = 0
@@ -310,7 +309,7 @@ class SentenceFeature():
         for w in unprocessed_words:
             w_i_in_array = vectorizer.vocabulary_.get(w)  # map from word to column index
             if w_i_in_array:
-                total_DF += np.count_nonzero(X_array[:, w_i_in_array])
+                total_DF += len(X[:, w_i_in_array].nonzero()[0])
                 count += 1
 
         if count != 0:
@@ -572,7 +571,6 @@ class SentenceFeature():
         else:
             corpus = [parsers.body]
         X = vectorizer.fit_transform(corpus)
-
         return (vectorizer, X)
 
 
@@ -583,9 +581,11 @@ if __name__ == "__main__":
     # word_vectors = KeyedVectors.load_word2vec_format(model_path, binary=True)
 
     data_dir = 'C:/KangLong/Data/cnn/stories/data/train/'
-    parser = StoryParser.from_file(data_dir + "c7af94074d86535e5c02e1199946ac722585b0ac.story")
-    vectorizer, X = SentenceFeature.get_global_term_freq(parser)
-    sent_feature = SentenceFeature(parser)
+    parser1 = StoryParser.from_file(data_dir + "c7af94074d86535e5c02e1199946ac722585b0ac.story")
+    parser2 = StoryParser.from_file(data_dir + "c17d13d0ffb2689d658d85bf9092d0dc000cb691.story")
+    parsers = [parser1, parser2]
+    vectorizer, X = SentenceFeature.get_global_term_freq(parsers)
+    sent_feature = SentenceFeature(parser1)
     # labeled_data = sent_feature.label_sents()
     # print(labeled_data)
     sent_feature.get_all_features(vectorizer, X)

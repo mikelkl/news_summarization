@@ -141,11 +141,11 @@ class SentenceFeature():
             1, input sentence is the first sentence of a paragraph
             0, input sentence is not the first sentence of a paragraph.
         """
+        para_first = 0
         for paragraph in self.paragraphs:
             if self.sents[sent_i] == paragraph[0]:
-                return 1
-            else:
-                return 0
+                para_first = 1
+        return para_first
 
     def _get_length(self, sent_i):
         """

@@ -8,6 +8,11 @@ Simple library for extracting summary from [Deepmind news dataset](https://cs.ny
 - **Kam-Fai** Supervised method - [Extractive Summarization Using Supervised and Semi-supervised Learning](http://www.aclweb.org/anthology/C08-1124)
 - **InfoFilter** - [Detecting (Un)Important Content for Single-Document News Summarization](http://aclweb.org/anthology/E17-2112)
 
+## Installation ##
+```python
+python setup.py install
+```
+
 ## Usage ##
 ```python
 from newssum.parsers import PlaintextParser

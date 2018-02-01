@@ -3,13 +3,13 @@ import string
 
 import networkx as nx
 import numpy as np
-from gensim.models import KeyedVectors
+# from gensim.models import KeyedVectors
 from nltk import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sumy.utils import get_stop_words
 from newssum.summarizers import CoreRank
-from evaluation import Rouge
+from newssum.evaluation import Rouge
 
 
 class SentenceFeature():
@@ -143,8 +143,11 @@ class SentenceFeature():
         """
         para_first = 0
         for paragraph in self.paragraphs:
-            if self.sents[sent_i] == paragraph[0]:
-                para_first = 1
+            try:
+                if self.sents[sent_i] == paragraph[0]:
+                    para_first = 1
+            except IndexError:
+                continue
         return para_first
 
     def _get_length(self, sent_i):

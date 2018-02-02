@@ -11,9 +11,10 @@ class StoryParser(BaseParser):
     Please refer cnn dataset at: http://cs.nyu.edu/~kcho/DMQA/
     """
 
-    def __init__(self, text, pos_tagger, keep_only_n_and_adj=True, remove_stopwords=True, stemming_mode="stemming"):
+    def __init__(self, file_path, text, pos_tagger, keep_only_n_and_adj=True, remove_stopwords=True, stemming_mode="stemming"):
         highlight_i = text.index('@highlight')
         if highlight_i:
+            self.file_path = file_path
             self.body = text[:highlight_i].strip()
             paragraphs = self.body.split("\n")
             self.paragraphs, self.sents = self.tokenize_sents_paras(paragraphs)
@@ -47,4 +48,4 @@ class StoryParser(BaseParser):
             for line in file:
                 if line != "\n":
                     text += line
-            return cls(text, pos_tagger=pos_tagger)
+            return cls(file_path, text, pos_tagger=pos_tagger)

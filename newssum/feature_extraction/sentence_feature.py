@@ -121,7 +121,11 @@ class SentenceFeature():
     #         print("{}: {}\n".format(sents[k], v))
 
     def _get_position(self, sent_i):
-        return sent_i / self.sents_i[-1]
+        count = self.sents_i[-1]
+        position = 1
+        if count != 0:
+            position = sent_i / count
+        return position
 
     def _get_doc_first(self, sent_i):
         """

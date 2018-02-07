@@ -1,6 +1,6 @@
 import subprocess
 import os
-from definitions import ROOT_DIR
+from newssum.definitions import ROOT_DIR
 
 
 class SentenceImportanceDetector():

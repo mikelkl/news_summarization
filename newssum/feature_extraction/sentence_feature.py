@@ -85,20 +85,27 @@ class SentenceFeature():
                 # last selected sentence even exceed length constrain
                 if num_S >= 2 and S_i[-1][1] == S_i[-2][1]:
                     continue
-
                 else:
                     break
 
+        num_pos = len(S_i)
+        neg_sents = {}
+        for s_i in sents_i:
+            importance = Rouge(self.sents[s_i], concat_ref).get_rouge_2()["r"]
+            neg_sents.update({s_i:importance})
+
+        sorted_list = sorted(neg_sents.items(), key=lambda x: x[1], reverse=True)  # sort dict by value
+        neg_sents_i = [i for i,_ in sorted_list[:num_pos]]
         # for i, v in S_i:
         #     print("{}: {}: {}".format(i, v, sents[i]))
-        y = [0] * len(self.sents_i)
-        for i, _ in S_i:
-            y[i] = 1
-
-        return y
-        # pos_sents_i = [i for i, _ in S_i]
+        # y = [-1] * len(self.sents_i)
+        # for i, _ in S_i:
+        #     y[i] = 1
+        #
+        # return y
+        pos_sents_i = [i for i, _ in S_i]
         # neg_sents_i = [i for i in sents_i]
-        # return (pos_sents_i, neg_sents_i)
+        return (pos_sents_i, neg_sents_i)
 
     # def label_sents(self, sents, refs):
     #     """
@@ -135,7 +142,11 @@ class SentenceFeature():
             1, input sentence is the first sentence of a document.
             0, input sentence is not the first sentence of a document.
         """
-        return int(sent_i == 0)
+        # return int(sent_i == 0)
+        doc_first = int(sent_i == 0)
+        if doc_first == 0:
+            doc_first = -1
+        return doc_first
 
     def _get_para_first(self, sent_i):
         """
@@ -145,7 +156,8 @@ class SentenceFeature():
             1, input sentence is the first sentence of a paragraph
             0, input sentence is not the first sentence of a paragraph.
         """
-        para_first = 0
+        # para_first = 0
+        para_first = -1
         for paragraph in self.paragraphs:
             try:
                 if self.sents[sent_i] == paragraph[0]:
@@ -589,23 +601,37 @@ class SentenceFeature():
 
 if __name__ == "__main__":
     from parsers import StoryParser
+    from newssum.definitions import ROOT_DIR
+    import pickle as pk
+    import os
 
     # model_path = "C:/KangLong/Data/GoogleNews-vectors-negative300.bin.gz"  # change to your path
     # word_vectors = KeyedVectors.load_word2vec_format(model_path, binary=True)
 
-    data_dir = 'C:/KangLong/Data/cnn/stories/data/train/'
-    parser1 = StoryParser.from_file(data_dir + "c7af94074d86535e5c02e1199946ac722585b0ac.story")
-    parser2 = StoryParser.from_file(data_dir + "c17d13d0ffb2689d658d85bf9092d0dc000cb691.story")
-    parsers = [parser1, parser2]
-    vectorizer, X = SentenceFeature.get_global_term_freq(parsers)
-    sent_feature = SentenceFeature(parser1)
-    # labeled_data = sent_feature.label_sents()
-    # print(labeled_data)
-    sent_feature.get_all_features(vectorizer, X)
-    # for i in sent_feature.sents_i[:-2]:
-    #     for j in sent_feature.sents_i[i+1:]:
-    #         sim = sent_feature._cal_cosine_similarity([sent_feature.sents[i], sent_feature.sents[j]])
-    #         print(sim)
-    # pr = sent_feature.page_rank_rel()
-    # print(len(pr))
-    # print(len(sent_feature.sents_i))
+    # parser1 = StoryParser.from_file(data_dir + "c7af94074d86535e5c02e1199946ac722585b0ac.story")
+    # parser2 = StoryParser.from_file(data_dir + "c17d13d0ffb2689d658d85bf9092d0dc000cb691.story")
+    # parsers = [parser1, parser2]
+    # vectorizer, X = SentenceFeature.get_global_term_freq(parsers)
+    print("Reading test files...")
+    OUTPUT_DIR = os.path.join(os.path.dirname(ROOT_DIR), "data")
+    test_parsers = pk.load(open(os.path.join(OUTPUT_DIR, "test.pk"), "rb"))
+    rouges = []
+    total = len(test_parsers)
+    count = 1
+    for parser in test_parsers:
+        print("{}/{}".format(count, total))
+        count += 1
+
+        sent_feature = SentenceFeature(parser)
+        Y = sent_feature.label_sents()
+        pos_i = np.nonzero(Y)[0]
+        if pos_i.size != 0:
+            selected_sents = [parser.sents[i] for i in pos_i]
+        else:
+            selected_sents = ""
+        rouge = Rouge(selected_sents, parser.highlights).get_rouge()
+
+        rouges.append(rouge)
+
+    avg_rouge = Rouge.cal_avg_rouge(rouges)
+    Rouge.print("Labeling framework", avg_rouge)

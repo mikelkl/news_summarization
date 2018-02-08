@@ -14,7 +14,6 @@ from newssum.evaluation import Rouge
 
 
 class SentenceFeature():
-
     def __init__(self, parser) -> None:
         self.paragraphs = parser.paragraphs
         self.sents = parser.sents
@@ -92,7 +91,7 @@ class SentenceFeature():
         y = [-1] * len(self.sents_i)
         for i, _ in S_i:
             y[i] = 1
-        y[:3] = [1]*3  # set lead-3 sentences as positive
+        y[:3] = [1] * 3  # set lead-3 sentences as positive
         y = np.asarray(y)
 
         return y
@@ -272,6 +271,7 @@ class SentenceFeature():
         else:
             # get surface features for single sample for labeled data
             surface_features = get_features(sents_i)
+        surface_features = np.asarray(surface_features)
 
         return surface_features
 
@@ -411,6 +411,7 @@ class SentenceFeature():
         else:
             # get surface features for single sample for labeled data
             content_features = get_features(sents_i)
+        content_features = np.asarray(content_features)
 
         return content_features
 
@@ -552,10 +553,20 @@ class SentenceFeature():
         else:
             # get surface features for single sample for labeled data
             relevance_features = get_features(sents_i)
+        relevance_features = np.asarray(relevance_features)
 
         return relevance_features
 
     def get_all_features(self, vectorizer, X, word_vectors=None, sents_i=None):
+        """
+        Concatenate sub-features together.
+
+        :param vectorizer: sklearn.feature_extraction.text.CountVectorizer
+        :param X: Document-term matrix
+        :param word_vectors: optional
+        :param sents_i: list
+        :return: numpy array
+        """
         # get all feature for unlabeled data
         if sents_i is None:
             sents_i = self.sents_i
@@ -565,10 +576,9 @@ class SentenceFeature():
             surface_features = self.get_surface_features(sent_i)
             content_features = self.get_content_features(sent_i, vectorizer, X, word_vectors)
             relevance_features = self.get_relevance_features(sent_i)
-            all_feature = surface_features + content_features + relevance_features
+            all_feature = np.concatenate((surface_features, content_features, relevance_features), axis=0)
             all_features.append(all_feature)
 
-        all_features = np.asarray(all_features)
         # self.features_name = ["position", "doc_first", "para_first", "length", "quote", "stop", "TF", "DF",
         #                       "core_rank_score", "first_rel_doc", "first_rel_para", "page_rank_rel"]
         return all_features

@@ -10,12 +10,24 @@ from nltk import word_tokenize
 
 class InfoFilter():
     def __init__(self, X, y, scaler, vectorizer, matrix) -> None:
+        """
+        :param X: {array-like, sparse matrix}, shape (n_samples, n_features)
+        :param y: array-like, shape (n_samples,)
+        :param scaler: sklearn.preprocessing.*Scaler
+        :param vectorizer: sklearn.feature_extraction.text.CountVectorizer
+        :param matrix: Document-term matrix
+        """
         self.clf = self.fit(X, y)
         self.scaler = scaler
         self.vectorizer = vectorizer
         self.matrix = matrix
 
     def fit(self, X, y):
+        """
+        :param X: {array-like, sparse matrix}, shape (n_samples, n_features)
+        :param y: array-like, shape (n_samples,)
+        :return: sklearn.svm.LinearSVC
+        """
         print("Training...")
         clf = svm.LinearSVC()
         clf.fit(X, y)
@@ -23,12 +35,28 @@ class InfoFilter():
         return clf
 
     def evaluate_classifier(self, X, y):
+        """
+        :param X: {array-like, sparse matrix}, shape (n_samples, n_features)
+        :param y: array-like, shape (n_samples,)
+        """
         print("Evaluating classifier...")
         acc = self.clf.score(X, y)
 
         print("Classifier accuracy: {}".format(acc))
 
     def get_best_sents(self, parser, **kwargs):
+        """
+        :param parser: newssum.parser.StoryParser
+        :param kwargs:
+            See below
+
+        :Keyword Arguments:
+            * *w_threshod* (``int``)
+                word length threshold
+            * *s_threshod* (``int``)
+                sentence length threshold
+        :return: list or null string
+        """
         sent_feature = SentenceFeature(parser)
         X = sent_feature.get_all_features(self.vectorizer, self.matrix)
         X = self.scaler.transform(X)
@@ -64,6 +92,18 @@ class InfoFilter():
         return selected_sents
 
     def evaluate_summarizer(self, parsers, **kwargs):
+        """
+        :param parsers: list
+            List stores newssum.parser.StoryParser.
+        :param kwargs:
+            See below
+
+        :Keyword Arguments:
+            * *w_threshod* (``int``)
+                word length threshold
+            * *s_threshod* (``int``)
+                sentence length threshold
+        """
         print("Evaluating summarizer...")
         p = multiprocessing.ProcessingPool(multiprocessing.cpu_count() - 2)
 
@@ -84,7 +124,17 @@ class InfoFilter():
 
     @staticmethod
     def get_train_val_test_data(train_parsers, val_parsers, test_parsers):
-        print("Get train data...")
+        """
+        :param train_parsers: list
+            List stores newssum.parser.StoryParser for train data.
+        :param val_parsers: list
+            List stores newssum.parser.StoryParser for validation data.
+        :param test_parsers: list
+            List stores newssum.parser.StoryParser for test data.
+        :return: (array, array, array, array, array, array,
+                    sklearn.preprocessing.*Scaler, sklearn.feature_extraction.text.CountVectorizer,
+                    array)
+        """
         scaler = preprocessing.StandardScaler()
         vectorizer, matrix = SentenceFeature.get_global_term_freq(train_parsers)
 
@@ -114,6 +164,7 @@ class InfoFilter():
             return (X, y)
 
         def preprocess(parsers, mode="train"):
+            print("Preprocess for {} data".format(mode))
             data = p.map(get_data, parsers)
             # p.close()
             # p.join()

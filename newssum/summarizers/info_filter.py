@@ -22,16 +22,8 @@ class InfoFilter():
 
         return clf
 
-    def predict(self, X):
-        X = np.asarray(X)
-        X = self.scaler.transform(X)
-        y = self.clf.predict(X)
-
-        return y
-
     def evaluate_classifier(self, X, y):
         print("Evaluating classifier...")
-        X = self.scaler.transform(X)
         acc = self.clf.score(X, y)
 
         print("Classifier accuracy: {}".format(acc))
@@ -40,6 +32,13 @@ class InfoFilter():
         sent_feature = SentenceFeature(parser)
         X = sent_feature.get_all_features(self.vectorizer, self.matrix)
         X = self.scaler.transform(X)
+        # local_norm = ["length", "quote", "core_rank_score", "page_rank_rel"]
+        # global_norm = [0, 1, 2, 5, 6, 7, 9, 10]
+        # X = sent_feature.doc_level_normalize(X, local_norm)
+        # X_global = X[:, global_norm]
+        # X_global = self.scaler.transform(X_global)
+        # X_local = np.delete(X, global_norm, axis=1)
+        # X = np.concatenate((X_local, X_global), axis=1)
         y = self.clf.predict(X)
         pos_i = np.where(y == 1)[0]
         if pos_i.size != 0:
@@ -54,7 +53,7 @@ class InfoFilter():
                     w_length += len(tokenized_sent)
                     if w_length >= w_threshold:
                         break
-            if "s_threshod" in kwargs:
+            elif "s_threshod" in kwargs:
                 s_threshod = kwargs["s_threshod"]
                 for i in pos_i[:s_threshod]:
                     sent = parser.sents[i]
@@ -69,8 +68,8 @@ class InfoFilter():
         p = multiprocessing.ProcessingPool(multiprocessing.cpu_count() - 2)
 
         def get_rouges(parser):
-            # print("Get rouges...")
-            # print(parser)
+            print("Get rouges...")
+            print(parser)
             selected_sents = self.get_best_sents(parser, **kwargs)
             rouge = Rouge(selected_sents, parser.highlights).get_rouge()
 
@@ -90,13 +89,17 @@ class InfoFilter():
         vectorizer, matrix = SentenceFeature.get_global_term_freq(train_parsers)
 
         p = multiprocessing.ProcessingPool(multiprocessing.cpu_count() - 2)
+        # local_norm = ["length", "quote", "core_rank_score", "page_rank_rel"]
+        # global_norm = [0, 1, 2, 5, 6, 7, 9, 10]
 
         def get_data(parser):
             print("Get data...")
             print(parser)
             sent_feature = SentenceFeature(parser)
-            X = sent_feature.get_all_features(vectorizer, matrix)
             y = sent_feature.label_sents()
+            X = sent_feature.get_all_features(vectorizer, matrix)
+            # X = sent_feature.doc_level_normalize(X, local_norm)
+
             # X_initial = sent_feature.get_all_features(vectorizer, matrix)
             # pos_sents_i, neg_sents_i = sent_feature.label_sents()
             # X =[]
@@ -118,15 +121,23 @@ class InfoFilter():
             X_initial = []
             y_initial = []
             for X, y in data:
-                X_initial += X
-                y_initial += y
-            X_initial = np.asarray(X_initial)
-            y_initial = np.asarray(y_initial)
+                X_initial.append(X)
+                y_initial.append(y)
+            X_initial = np.concatenate(X_initial)
+            y_initial = np.concatenate(y_initial)
             if mode == "train":
                 X_initial = scaler.fit_transform(X_initial)
+                # X_global = X_initial[:,global_norm]
+                # X_global = scaler.fit_transform(X_global)
+                # X_local = np.delete(X_initial, global_norm, axis=1)
+                # X = np.concatenate((X_local, X_global), axis=1)
             else:
                 # X_initial = X_initial[3:]
                 X_initial = scaler.transform(X_initial)
+                # X_global = X_initial[:, global_norm]
+                # X_global = scaler.transform(X_global)
+                # X_local = np.delete(X_initial, global_norm, axis=1)
+                # X = np.concatenate((X_local, X_global), axis=1)
                 # y_initial = y_initial[3:]
             # X_train_bool = X_train[:, [1, 2]]
             # X_train_non_bool = np.delete(X_train, [1, 2], axis=1)
@@ -164,6 +175,8 @@ class InfoFilter():
 
 
 if __name__ == "__main__":
+    # Debug code in development phrase,
+    # will remove in formal version.
     from newssum.parsers import StoryParser
     from newssum.definitions import ROOT_DIR
     import pickle as pk
@@ -193,16 +206,16 @@ if __name__ == "__main__":
     print("Reading test files...")
     # read_file('C:/KangLong/Data/cnn/stories/data/test/', "mini_test.pk")
     test_parsers = pk.load(open(os.path.join(OUTPUT_DIR, "mini_test.pk"), "rb"))
-    # data = InfoFilter.get_train_val_test_data(train_parsers, val_parsers, test_parsers)
-    # pk.dump(data, open(os.path.join(OUTPUT_DIR, "mini_data.pk"), "wb"))
-    # X_train, y_train, X_val, y_val, X_test, y_test, scaler, vectorizer, matrix = data
-    X_train, y_train, X_val, y_val, X_test, y_test, scaler, vectorizer, matrix = pk.load(
-        open(os.path.join(OUTPUT_DIR, "mini_data.pk"), "rb"))
+    data = InfoFilter.get_train_val_test_data(train_parsers, val_parsers, test_parsers)
+    pk.dump(data, open(os.path.join(OUTPUT_DIR, "mini_data.pk"), "wb"))
+    X_train, y_train, X_val, y_val, X_test, y_test, scaler, vectorizer, matrix = data
+    # X_train, y_train, X_val, y_val, X_test, y_test, scaler, vectorizer, matrix = pk.load(
+    #     open(os.path.join(OUTPUT_DIR, "mini_data.pk"), "rb"))
     filter = InfoFilter(X_train, y_train, scaler, vectorizer, matrix)
     filter.evaluate_classifier(X_test, y_test)
-    # filter.evaluate_classifier(X_test, y_test)
-    # filter.evaluate_summarizer(test_parsers, s_threshod=3)
-    #
+    filter.evaluate_summarizer(test_parsers, s_threshod=3)
+
+    # test lead-3 method
     # rouges = []
     # for parser in test_parsers:
     #     lead_3 = parser.sents[:3]

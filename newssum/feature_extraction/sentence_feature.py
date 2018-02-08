@@ -7,6 +7,7 @@ import numpy as np
 from nltk import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn import preprocessing
 from sumy.utils import get_stop_words
 from newssum.summarizers import CoreRank
 from newssum.evaluation import Rouge
@@ -91,6 +92,8 @@ class SentenceFeature():
         y = [-1] * len(self.sents_i)
         for i, _ in S_i:
             y[i] = 1
+        y[:3] = [1]*3  # set lead-3 sentences as positive
+        y = np.asarray(y)
 
         return y
         # num_pos = len(S_i)
@@ -565,20 +568,20 @@ class SentenceFeature():
             all_feature = surface_features + content_features + relevance_features
             all_features.append(all_feature)
 
+        all_features = np.asarray(all_features)
         # self.features_name = ["position", "doc_first", "para_first", "length", "quote", "stop", "TF", "DF",
         #                       "core_rank_score", "first_rel_doc", "first_rel_para", "page_rank_rel"]
-        # self.doc_level_normalize(all_features, ["length", "quote", "core_rank_score", "page_rank_rel"])
         return all_features
 
-    # def doc_level_normalize(self, all_features, selected_features):
-    #     all_features = np.asarray(all_features)
+    # def doc_level_normalize(self, features, selected_features):
+    #     scaler = preprocessing.StandardScaler()
     #     for f in selected_features:
     #         f_i = self.features_name.index(f)
-    #         f_c = all_features[:, f_i].reshape(-1, 1)
-    #         f_normalized = normalize(f_c)
-    #         all_features[:, f_i] = f_normalized
+    #         f_c = features[:, f_i].reshape(-1, 1)
+    #         f_normalized = scaler.fit_transform(f_c).reshape(features.shape[0])
+    #         features[:, f_i] = f_normalized
     #
-    #     pass
+    #     return features
 
     @staticmethod
     def get_global_term_freq(parsers):
@@ -598,6 +601,9 @@ class SentenceFeature():
 
 
 if __name__ == "__main__":
+    # Debug code in development phrase,
+    # will remove in formal version.
+
     from parsers import StoryParser
     from newssum.definitions import ROOT_DIR
     import pickle as pk

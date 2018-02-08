@@ -88,24 +88,22 @@ class SentenceFeature():
                 else:
                     break
 
-        num_pos = len(S_i)
-        neg_sents = {}
-        for s_i in sents_i:
-            importance = Rouge(self.sents[s_i], concat_ref).get_rouge_2()["r"]
-            neg_sents.update({s_i:importance})
+        y = [-1] * len(self.sents_i)
+        for i, _ in S_i:
+            y[i] = 1
 
-        sorted_list = sorted(neg_sents.items(), key=lambda x: x[1], reverse=True)  # sort dict by value
-        neg_sents_i = [i for i,_ in sorted_list[:num_pos]]
-        # for i, v in S_i:
-        #     print("{}: {}: {}".format(i, v, sents[i]))
-        # y = [-1] * len(self.sents_i)
-        # for i, _ in S_i:
-        #     y[i] = 1
+        return y
+        # num_pos = len(S_i)
+        # neg_sents = {}
+        # for s_i in sents_i:
+        #     importance = Rouge(self.sents[s_i], concat_ref).get_rouge_2()["r"]
+        #     neg_sents.update({s_i:importance})
         #
-        # return y
-        pos_sents_i = [i for i, _ in S_i]
+        # sorted_list = sorted(neg_sents.items(), key=lambda x: x[1], reverse=True)  # sort dict by value
+        # neg_sents_i = [i for i,_ in sorted_list[:num_pos]]
+        # pos_sents_i = [i for i, _ in S_i]
         # neg_sents_i = [i for i in sents_i]
-        return (pos_sents_i, neg_sents_i)
+        # return (pos_sents_i, neg_sents_i)
 
     # def label_sents(self, sents, refs):
     #     """

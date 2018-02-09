@@ -14,8 +14,7 @@ python setup.py install
 ```
 
 ## Notes ##
-Since the CoreRank algorithm need get core number for each vertex considering the weight of each edge and networkX itself doesn't take it into account. The networkX source code need to be modified.
-Find `$KERAS_INSTALLATION_HOME/algorithms/core.py`, replace function `core_number` as below:
+Since the CoreRank algorithm need get core number for each vertex considering the weight of each edge and networkX itself doesn't take it into account. The networkX source code need to be modified. Find `$KERAS_INSTALLATION_HOME/algorithms/core.py`, replace function `core_number` as below:
 ```python
 def core_number(G, weight=None):
     """Return the core number for each vertex.

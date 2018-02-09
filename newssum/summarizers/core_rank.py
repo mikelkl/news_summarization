@@ -52,7 +52,7 @@ class CoreRank():
             e.g. {'sentiment': 102, ...}
         """
         core_n = nx.core_number(self.graph,
-                                weight=weight)  # get core number for each vertex considering the weight of each weight
+                                weight=weight)  # get core number for each vertex considering the weight of each edge
         scores = {}
         for n, nbrs in self.graph.adj.items():
             score = 0

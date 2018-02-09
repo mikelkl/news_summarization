@@ -13,6 +13,29 @@ Simple library for extracting summary from [Deepmind news dataset](https://cs.ny
 python setup.py install
 ```
 
+## Complete Project Structure ##
+```
+├───.idea
+├───build
+├───data               <- The original, immutable data dump.
+├───dist
+├───external
+├───figures            <- Figures saved by notebooks and scripts.
+├───newssum            <- Python package with source code.
+│   ├───evaluation
+│   ├───feature_extraction
+│   ├───models
+│   ├───parsers
+│   ├───summarizers
+├───newssum.egg-info
+├───notebooks
+├───output             <- Processed data, models, logs, etc.
+├───tests              <- Tests for Python package.
+├── README.md          <- README with info of the project.
+├── server.py          <- Simple server for online demo.
+└── setup.py           <- Install and distribute module.
+```
+
 ## Usage ##
 ```python
 from newssum.parsers import PlaintextParser

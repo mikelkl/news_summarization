@@ -217,8 +217,8 @@ class InfoFilter():
             return X, y
 
         X_train, y_train = preprocess(train_parsers)
-        X_val, y_val = preprocess(val_parsers)
-        X_test, y_test = preprocess(test_parsers)
+        X_val, y_val = preprocess(val_parsers, mode="val")
+        X_test, y_test = preprocess(test_parsers, mode="test")
         np.savetxt("X.csv", X_train, delimiter=",")
         np.savetxt("y.csv", y_train, delimiter=",")
 

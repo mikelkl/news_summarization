@@ -16,7 +16,7 @@ python setup.py install
 ## Notes ##
 Since the CoreRank algorithm need get core number for each vertex considering the weight of each edge and networkX itself doesn't take it into account. The networkX source code need to be modified. 
 
-Find `$networkx_INSTALLATION_HOME/algorithms/core.py`, replace function `core_number` as below:
+The modified file had been place at `$news_summarization_INSTALLATION_HOME/newssum/models/core.py`, you don't need to modify source code of networkX which may cause running error when using networkX for other jobs.   
 ```python
 def core_number(G, weight=None):
     """Return the core number for each vertex.

@@ -5,6 +5,7 @@ from nltk.tokenize import word_tokenize
 
 from newssum.feature_extraction import CoOccurrenceMatrix
 from newssum.models import Graph
+from newssum.models.core import core_number
 
 
 class CoreRank():
@@ -51,7 +52,7 @@ class CoreRank():
             A dictionary whose key is word, value is corresponding score,
             e.g. {'sentiment': 102, ...}
         """
-        core_n = nx.core_number(self.graph,
+        core_n = core_number(self.graph,
                                 weight=weight)  # get core number for each vertex considering the weight of each edge
         scores = {}
         for n, nbrs in self.graph.adj.items():

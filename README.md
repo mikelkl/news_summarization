@@ -13,7 +13,53 @@ Simple library for extracting summary from [Deepmind news dataset](https://cs.ny
 python setup.py install
 ```
 
-## Notes ##
+## Usage ##
+```python
+from newssum.parsers import PlaintextParser
+from newssum.summarizers import CoreRank
+
+TEXT = "Thomas appeared in 15 games (14 starts) for Cleveland this season, averaging 14.7 points, 4.5 assists and 2.1 rebounds in 27.1 minutes. The two-time NBA All-Star (2015-17) owns career averages of 19.0 points (.441 FG%), 5.1 assists, 2.6 rebounds and 1.0 steals in 456 career games (323 starts). In 2016-17, Thomas earned All-NBA Second Team honors when he averaged a career-high 28.9 points (.463 FG%) per game."
+
+if __name__ == "__main__":
+    parser = PlaintextParser(TEXT)
+    cr_summarizer = CoreRank(parser)
+    summary = cr_summarizer.get_best_sents(w_threshold=25)
+    print(summary)
+```
+
+## InfoRank Features Introduction ##
+#### 1. Surface Features ####  
+Surface features are based on structure of documents or sentences. 
+ 
+| Name       | Description                                     |
+|------------|-------------------------------------------------|
+| Position   | 1/sentence no.                                  |
+| Doc_First  | Whether it is the first sentence of a document  |
+| Para_First | Whether it is the first sentence of a paragraph |
+| Length     | The number of words in a sentence               |
+| Quote      | The number of quoted words in a sentence        |
+
+#### 2. Content Features ####  
+| Name       | Description                                     |
+|------------|-------------------------------------------------|
+| Position   | 1/sentence no.                                  |
+| Doc_First  | Whether it is the first sentence of a document  |
+| Para_First | Whether it is the first sentence of a paragraph |
+| Length     | The number of words in a sentence               |
+| Quote      | The number of quoted words in a sentence        |
+
+#### 3. Relevance Features ####  
+Relevance features are incorporated to exploit inter-sentence relationships.
+
+| Name       | Description                                     |
+|------------|-------------------------------------------------|
+| Position   | 1/sentence no.                                  |
+| Doc_First  | Whether it is the first sentence of a document  |
+| Para_First | Whether it is the first sentence of a paragraph |
+| Length     | The number of words in a sentence               |
+| Quote      | The number of quoted words in a sentence        |
+
+## CoreRank Notes ##
 Since the CoreRank algorithm need get core number for each vertex considering the weight of each edge and networkX itself doesn't take it into account. The networkX source code need to be modified. 
 
 The modified file had been place at `$news_summarization_INSTALLATION_HOME/newssum/models/core.py`, you don't need to modify source code of networkX which may cause running error when using networkX for other jobs.   
@@ -124,18 +170,4 @@ def core_number(G, weight=None):
 ├── README.md          <- README with info of the project.
 ├── server.py          <- Simple server for online demo.
 └── setup.py           <- Install and distribute module.
-```
-
-## Usage ##
-```python
-from newssum.parsers import PlaintextParser
-from newssum.summarizers import CoreRank
-
-TEXT = "Thomas appeared in 15 games (14 starts) for Cleveland this season, averaging 14.7 points, 4.5 assists and 2.1 rebounds in 27.1 minutes. The two-time NBA All-Star (2015-17) owns career averages of 19.0 points (.441 FG%), 5.1 assists, 2.6 rebounds and 1.0 steals in 456 career games (323 starts). In 2016-17, Thomas earned All-NBA Second Team honors when he averaged a career-high 28.9 points (.463 FG%) per game."
-
-if __name__ == "__main__":
-    parser = PlaintextParser(TEXT)
-    cr_summarizer = CoreRank(parser)
-    summary = cr_summarizer.get_best_sents(w_threshold=25)
-    print(summary)
 ```
